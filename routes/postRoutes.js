@@ -5,7 +5,7 @@ const Post = require("../models/Post");
 const authMiddleware = require("../middleware/authMiddleware");
 const Notification = require("../models/Notification");
 const upload = require("../uploadMiddleware");
-const { TbArrowAutofitUp } = require("react-icons/tb");
+
 router.post("/", authMiddleware,
     upload.single("image"),
     async (req, res) => {
