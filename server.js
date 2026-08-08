@@ -50,9 +50,14 @@ app.get("/", (req, res) => {
 
 });
 
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB connected"))
-.catch((err) => console.log(err));
+mongoose
+  .connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+  })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => {
+    console.error("MongoDB Connection Error:", err.message);
+  });
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
     socket.on("userOnline", async(userId) => {
