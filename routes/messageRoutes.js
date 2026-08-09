@@ -83,7 +83,7 @@ router.post(
         file: {
           filename: req.file.filename,
           originalName: req.file.originalname,
-          path: /uploads/${req.file.filename},
+          path: `/uploads/${req.file.filename}`,
           mimetype: req.file.mimetype,
         },
       });
