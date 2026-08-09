@@ -4,6 +4,62 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
+
+// GET UNREAD NOTIFICATION COUNT
+router.get("/unread/count", authMiddleware, async (req, res) => {
+  try {
+    const unreadCount = await Notification.countDocuments({
+      recipient: req.user.userId,
+      isRead: false,
+    });
+
+    res.status(200).json({
+      unreadCount,
+    });
+  } catch (error) {
+    console.error(
+      "Unread Notification Count Error:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Failed to get unread notification count",
+      error: error.message,
+    });
+  }
+});
+
+
+// MARK ALL NOTIFICATIONS AS READ
+router.put("/read-all", authMiddleware, async (req, res) => {
+  try {
+    await Notification.updateMany(
+      {
+        recipient: req.user.userId,
+        isRead: false,
+      },
+      {
+        $set: { isRead: true },
+      }
+    );
+
+    res.status(200).json({
+      message: "All notifications marked as read",
+    });
+  } catch (error) {
+    console.error(
+      "Mark All Notifications Read Error:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Failed to mark all notifications as read",
+      error: error.message,
+    });
+  }
+});
+
+
 // GET MY NOTIFICATIONS
 router.get("/", authMiddleware, async (req, res) => {
   try {
@@ -20,7 +76,10 @@ router.get("/", authMiddleware, async (req, res) => {
       notifications,
     });
   } catch (error) {
-    console.error("Fetch Notifications Error:", error);
+    console.error(
+      "Fetch Notifications Error:",
+      error
+    );
 
     res.status(500).json({
       message: "Failed to fetch notifications",
@@ -28,6 +87,7 @@ router.get("/", authMiddleware, async (req, res) => {
     });
   }
 });
+
 
 // MARK NOTIFICATION AS READ
 router.put("/:id/read", authMiddleware, async (req, res) => {
@@ -52,7 +112,10 @@ router.put("/:id/read", authMiddleware, async (req, res) => {
       notification,
     });
   } catch (error) {
-    console.error("Mark Notification Read Error:", error);
+    console.error(
+      "Mark Notification Read Error:",
+      error
+    );
 
     res.status(500).json({
       message: "Failed to mark notification as read",
@@ -60,5 +123,6 @@ router.put("/:id/read", authMiddleware, async (req, res) => {
     });
   }
 });
+
 
 module.exports = router;
