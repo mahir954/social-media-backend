@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const allowedOrigins = [
     "http://localhost:5173",
     "http://192.168.43.245:5173",
-    "https://fello-vecel.app"
+    "https://fello-social.vercel.app"
 ];
 
 const io = new Server(server, {
