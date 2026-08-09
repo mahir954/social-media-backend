@@ -70,7 +70,7 @@ router.post(
         sender: req.user.userId,
         receiver: req.body.receiver,
         text: "",
-        fileUrl: /uploads/${req.file.filename},
+        fileUrl: `/uploads/${req.file.filename}`,
         fileName: req.file.originalname,
         fileType: req.file.mimetype,
       });
