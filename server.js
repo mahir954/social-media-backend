@@ -88,12 +88,21 @@ io.on("connection", (socket) => {
             console.error("Online Status Error:", error);
         }
     });
-    socket.on("typing", (data) => {
-        socket.broadcast.emit("userTyping", data);
-    });
-    socket.on("stopTyping", (data) => {
-        socket.broadcast.emit("userStopTyping", data);
-    });
+   socket.on("typing", (data) => {
+    if (data && data.to) {
+        io.to(data.to).emit("userTyping", {
+            from: socket.userId,
+        });
+    }
+});
+
+socket.on("stopTyping", (data) => {
+    if (data && data.to) {
+        io.to(data.to).emit("userStopTyping", {
+            from: socket.userId,
+        });
+    }
+});
     socket.on("call-user", (data) => {
   io.to(data.to).emit("incoming-call", {
     from: data.from,
