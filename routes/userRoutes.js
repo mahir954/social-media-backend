@@ -1,8 +1,15 @@
 const express = require("express");
 const User = require("../models/User");
+const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const authMiddleware = require("../middleware/authMiddleware");
+const Post = require("../models/Post");
+const Reel = require("../models/Reel");
+const Story = require("../models/Story");
+const Note = require("../models/Note");
+const Message = require("../models/Message");
+const Report = require("../models/Report");
 const Notification = require("../models/Notification");
 
 const router = express.Router();
@@ -790,6 +797,88 @@ router.put("/unblock/:userId", authMiddleware, async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to unblock user",
+      error: error.message,
+    });
+  }
+});
+// DELETE MY ACCOUNT - COMPLETE CLEANUP
+router.delete("/account", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    // Delete user's posts
+    await Post.deleteMany({
+      user: userId,
+    });
+
+    // Delete user's reels
+    await Reel.deleteMany({
+      user: userId,
+    });
+
+    // Delete user's stories
+    await Story.deleteMany({
+      user: userId,
+    });
+
+    // Delete user's notes
+    await Note.deleteMany({
+      user: userId,
+    });
+
+    // Delete user's messages
+    await Message.deleteMany({
+      $or: [
+        { sender: userId },
+        { receiver: userId },
+      ],
+    });
+
+    // Delete user's notifications
+    await Notification.deleteMany({
+      $or: [
+        { recipient: userId },
+        { sender: userId },
+      ],
+    });
+
+    // Delete reports made by the user
+    await Report.deleteMany({
+      reporter: userId,
+    });
+
+    // Remove user from other users' relationships
+    await User.updateMany(
+      {},
+      {
+        $pull: {
+          followers: userId,
+          following: userId,
+          followRequests: userId,
+          blockedUsers: userId,
+        },
+      }
+    );
+
+    // Finally delete the user
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      message: "Account and all associated data deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete Account Error:", error);
+
+    res.status(500).json({
+      message: "Failed to delete account",
       error: error.message,
     });
   }
