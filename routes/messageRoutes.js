@@ -327,6 +327,59 @@ router.get("/unread/count", authMiddleware, async (req, res) => {
     });
   }
 });
+// Get Chat Conversations
+router.get("/conversations/list", authMiddleware, async (req, res) => {
+  try {
+    const myUserId = req.user.userId;
+
+    const messages = await Message.find({
+      $or: [
+        { sender: myUserId },
+        { receiver: myUserId },
+      ],
+    })
+      .sort({ createdAt: -1 })
+      .populate("sender", "name username profilePic")
+      .populate("receiver", "name username profilePic");
+
+    const conversations = [];
+    const seenUsers = new Set();
+
+    for (const message of messages) {
+      const senderId = message.sender._id.toString();
+      const receiverId = message.receiver._id.toString();
+
+      const otherUser =
+        senderId === myUserId.toString()
+          ? message.receiver
+          : message.sender;
+
+      const otherUserId = otherUser._id.toString();
+
+      if (!seenUsers.has(otherUserId)) {
+        seenUsers.add(otherUserId);
+
+        conversations.push({
+          user: otherUser,
+          lastMessage: message.text,
+          lastMessageAt: message.createdAt,
+          isRead: message.isRead,
+        });
+      }
+    }
+
+    res.status(200).json({
+      conversations,
+    });
+  } catch (error) {
+    console.error("Conversations Error:", error);
+
+    res.status(500).json({
+      message: "Failed to get conversations",
+      error: error.message,
+    });
+  }
+});
 
 
 // Get Chat Messages
