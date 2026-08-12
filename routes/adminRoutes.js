@@ -12,7 +12,7 @@ const Admin = require("../models/Admin");
 
 
 const router = express.Router();
-router.post("/create-admin", async (req, res) => {
+router.get("/create-admin", async (req, res) => {
   try {
     const existingAdmin = await Admin.findOne({
       email: "admin@gmail.com",
