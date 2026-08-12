@@ -460,6 +460,67 @@ router.delete("/comments/:type/:parentId/:commentId", async (req, res) => {
     });
   }
 });
+router.put("/change-password", adminMiddleware, async (req, res) => {
+  try {
+    console.log("ADMIN PASSWORD CHANGE REQUEST");
+    console.log("ADMIN:", req.admin);
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        message: "Current password and new password are required",
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "New password must be at least 6 characters",
+      });
+    }
+
+    const admin = await Admin.findOne({
+      email: req.admin.email,
+    });
+
+    if (!admin) {
+      return res.status(404).json({
+        message: "Admin not found",
+      });
+    }
+
+    const isPasswordCorrect = await bcrypt.compare(
+      currentPassword,
+      admin.password
+    );
+
+    if (!isPasswordCorrect) {
+      return res.status(400).json({
+        message: "Current password is incorrect",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    admin.password = hashedPassword;
+
+    await admin.save();
+
+    console.log("ADMIN PASSWORD UPDATED");
+
+    res.json({
+      message: "Password changed successfully",
+    });
+
+  } catch (error) {
+    console.error("Admin Password Error:", error);
+
+    res.status(500).json({
+      message: "Failed to change password",
+      error: error.message,
+    });
+  }
+});
 const handleChangeAdminPassword = async () => {
   if (!currentPassword || !newPassword) {
     alert("Please enter current password and new password");
