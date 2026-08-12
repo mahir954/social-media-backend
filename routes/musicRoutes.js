@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const Music = require("../models/Music");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
 const router = express.Router();
 
@@ -47,6 +48,7 @@ router.get("/", async (req, res) => {
 // ADD MUSIC
 router.post(
   "/upload",
+  adminMiddleware,
   upload.single("audio"),
   async (req, res) => {
     try {
@@ -94,7 +96,7 @@ router.post(
   }
 );
 // DELETE MUSIC
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", adminMiddleware, async (req, res) => {
   try {
     const music = await Music.findByIdAndDelete(req.params.id);
 
