@@ -289,7 +289,7 @@ io.on("connection", (socket) => {
       if (!data?.streamId) return;
 
       socket.join(
-        live:${data.streamId}
+        `live:${data.streamId}`
       );
 
       socket.liveStreamId =
@@ -632,7 +632,7 @@ socket.on("leave-live", (data) => {
 
     stream.viewers.delete(socket.id);
 
-    socket.leave(live:${data.streamId});
+    socket.leave(`live:${data.streamId}`);
 
     if (socket.liveStreamId === data.streamId) {
       socket.liveStreamId = null;
