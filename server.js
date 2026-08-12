@@ -92,7 +92,7 @@ const emitViewerCount = (streamId) => {
 
   const count = stream.viewers.size;
 
-  io.to(live:${streamId}).emit(
+  io.to(`live:${streamId}`).emit(
     "viewer-count",
     {
       streamId,
@@ -100,7 +100,7 @@ const emitViewerCount = (streamId) => {
     }
   );
 
-  io.to(live:${streamId}).emit(
+  io.to(`live:${streamId}`).emit(
     "live-viewers",
     {
       streamId,
@@ -179,8 +179,7 @@ io.on("connection", (socket) => {
       "incoming-call",
       {
         from: data.from,
-        callerName:
-          data.callerName,
+        callerName: data.callerName,
         type: data.type,
       }
     );
@@ -243,17 +242,18 @@ io.on("connection", (socket) => {
       "call-ended"
     );
   });
-    socket.on("start-live", (data) => {
+  socket.on("start-live", (data) => {
     if (!data?.streamId) return;
 
     const stream = {
       streamId: data.streamId,
-      userId: data.userId,
+      userId: data.userId || socket.userId || null,
       username: data.username || "User",
       profilePic: data.profilePic || "",
       title: data.title || "Live Stream",
       startedAt:
-        data.startedAt || new Date().toISOString(),
+        data.startedAt ||
+        new Date().toISOString(),
       viewers: new Set(),
       likes: new Set(),
       comments: [],
@@ -266,7 +266,9 @@ io.on("connection", (socket) => {
       stream
     );
 
-    socket.join(live:${data.streamId});
+    socket.join(
+      `live:${data.streamId}`
+    );
 
     socket.liveStreamId =
       data.streamId;
@@ -316,7 +318,7 @@ io.on("connection", (socket) => {
     }
 
     socket.join(
-      live:${data.streamId}
+      `live:${data.streamId}`
     );
 
     stream.viewers.add(
@@ -361,7 +363,7 @@ io.on("connection", (socket) => {
       if (!data?.streamId) return;
 
       socket.join(
-        live:${data.streamId}
+        `live:${data.streamId}`
       );
 
       const stream =
@@ -399,7 +401,7 @@ io.on("connection", (socket) => {
       const comment = {
         id:
           data.id ||
-          ${Date.now()}-${socket.id},
+          `${Date.now()}-${socket.id}`,
         streamId:
           data.streamId,
         userId:
@@ -413,7 +415,9 @@ io.on("connection", (socket) => {
           data.profilePic ||
           "",
         text:
-          String(data.text || "")
+          String(
+            data.text || ""
+          )
             .trim()
             .slice(0, 300),
         createdAt:
@@ -438,14 +442,14 @@ io.on("connection", (socket) => {
       }
 
       io.to(
-        live:${data.streamId}
+        `live:${data.streamId}`
       ).emit(
         "live-comment",
         comment
       );
 
       io.to(
-        live:${data.streamId}
+        `live:${data.streamId}`
       ).emit(
         "new-live-comment",
         comment
@@ -468,7 +472,7 @@ io.on("connection", (socket) => {
       const comment = {
         id:
           data.id ||
-          ${Date.now()}-${socket.id},
+         `${Date.now()}-${socket.id}`,
         streamId:
           data.streamId,
         userId:
@@ -479,10 +483,12 @@ io.on("connection", (socket) => {
           data.username ||
           "User",
         profilePic:
-          data.profile Pic ||
+          data.profilePic ||
           "",
         text:
-          String(data.text || "")
+          String(
+            data.text || ""
+          )
             .trim()
             .slice(0, 300),
         createdAt:
@@ -499,326 +505,280 @@ io.on("connection", (socket) => {
         );
 
       if (!alreadyExists) {
-        stream.comments.push(comment);
+        stream.comments.push(
+          comment
+        );
       }
 
       io.to(
-        live:${data.streamId}
+        `live:${data.streamId}`
       ).emit(
         "new-live-comment",
         comment
       );
     }
   );
+socket.on("live-like", (data) => {
+    if (!data?.streamId) return;
 
-  socket.on(
-    "live-like",
-    (data) => {
-      if (!data?.streamId) return;
+    const stream = liveStreams.get(data.streamId);
 
-      const stream =
-        liveStreams.get(data.streamId);
+    if (!stream) return;
 
-      if (!stream) return;
+    const likeUserId =
+      data.userId ||
+      socket.userId ||
+      socket.id;
 
-      const likeUserId =
-        data.userId ||
-        socket.userId ||
-        socket.id;
-
-      if (stream.likes.has(likeUserId)) {
-        return;
-      }
-
-      stream.likes.add(likeUserId);
-
-      const likeCount =
-        stream.likes.size;
-
-      io.to(
-        live:${data.streamId}
-      ).emit("live-like", {
-        streamId: data.streamId,
-        count: likeCount,
-      });
-
-      io.to(
-        live:${data.streamId}
-      ).emit("live-likes", {
-        streamId: data.streamId,
-        count: likeCount,
-      });
+    if (stream.likes.has(likeUserId)) {
+      return;
     }
-  );
 
-  socket.on(
-    "like-live",
-    (data) => {
-      if (!data?.streamId) return;
+    stream.likes.add(likeUserId);
 
-      const stream =
-        liveStreams.get(data.streamId);
+    const likeCount = stream.likes.size;
 
-      if (!stream) return;
-
-      const likeUserId =
-        data.userId ||
-        socket.userId ||
-        socket.id;
-
-      if (stream.likes.has(likeUserId)) {
-        return;
+    io.to(`live:${data.streamId}`).emit(
+      "live-like",
+      {
+        streamId: data.streamId,
+        count: likeCount,
       }
+    );
 
-      stream.likes.add(likeUserId);
+    io.to(`live:${data.streamId}`).emit(
+      "live-likes",
+      {
+        streamId: data.streamId,
+        count: likeCount,
+      }
+    );
+  });
 
-      io.to(
-        live:${data.streamId}
-      ).emit("live-likes", {
+  socket.on("like-live", (data) => {
+    if (!data?.streamId) return;
+
+    const stream = liveStreams.get(data.streamId);
+
+    if (!stream) return;
+
+    const likeUserId =
+      data.userId ||
+      socket.userId ||
+      socket.id;
+
+    if (stream.likes.has(likeUserId)) {
+      return;
+    }
+
+    stream.likes.add(likeUserId);
+
+    io.to(`live:${data.streamId}`).emit(
+      "live-likes",
+      {
         streamId: data.streamId,
         count: stream.likes.size,
-      });
-    }
-  );
-
-  socket.on(
-    "live-camera-toggle",
-    (data) => {
-      if (!data?.streamId) return;
-
-      socket
-        .to(live:${data.streamId})
-        .emit("live-camera-toggle", {
-          streamId: data.streamId,
-          userId: data.userId,
-          cameraOn: Boolean(data.cameraOn),
-        });
-    }
-  );
-
-  socket.on(
-    "live-mic-toggle",
-    (data) => {
-      if (!data?.streamId) return;
-
-      socket
-        .to(live:${data.streamId})
-        .emit("live-mic-toggle", {
-          streamId: data.streamId,
-          userId: data.userId,
-          micOn: Boolean(data.micOn),
-        });
-    }
-  );
-
-  socket.on(
-    "leave-live",
-    (data) => {
-      if (!data?.streamId) return;
-
-      const stream =
-        liveStreams.get(data.streamId);
-
-      if (!stream) return;
-
-      stream.viewers.delete(socket.id);
-
-      socket.leave(
-        live:${data.streamId}
-      );
-
-      if (
-        socket.liveStreamId ===
-        data.streamId
-      ) {
-        socket.liveStreamId = null;
       }
+    );
+  });
 
-      emitViewerCount(data.streamId);
-    }
-  );
+  socket.on("live-camera-toggle", (data) => {
+    if (!data?.streamId) return;
 
-  socket.on(
-    "leave-live-stream",
-    (data) => {
-      if (!data?.streamId) return;
-
-      const stream =
-        liveStreams.get(data.streamId);
-
-      if (!stream) return;
-
-      stream.viewers.delete(socket.id);
-
-      socket.leave(
-        live:${data.streamId}
-      );
-
-      emitViewerCount(data.streamId);
-    }
-  );
-
-  socket.on(
-    "end-live",
-    (data) => {
-      if (!data?.streamId) return;
-
-      const stream =
-        liveStreams.get(data.streamId);
-
-      if (!stream) return;
-
-      if (
-        stream.userId &&
-        data.userId &&
-        String(stream.userId) !==
-          String(data.userId)
-      ) {
-        return;
-      }
-
-      io.to(
-        live:${data.streamId}
-      ).emit("live-ended", {
+    socket
+      .to(`live:${data.streamId}`)
+      .emit("live-camera-toggle", {
         streamId: data.streamId,
+        userId: data.userId,
+        cameraOn: Boolean(data.cameraOn),
       });
+  });
 
-      io.to(
-        live:${data.streamId}
-      ).emit("stream-ended", {
+  socket.on("live-mic-toggle", (data) => {
+    if (!data?.streamId) return;
+
+    socket
+      .to(`live:${data.streamId}`)
+      .emit("live-mic-toggle", {
         streamId: data.streamId,
+        userId: data.userId,
+        micOn: Boolean(data.micOn),
       });
+  });
+socket.on("leave-live", (data) => {
+    if (!data?.streamId) return;
 
-      io.in(
-        live:${data.streamId}
-      ).socketsLeave(
-        live:${data.streamId}
-      );
+    const stream = liveStreams.get(data.streamId);
 
-      liveStreams.delete(
-        data.streamId
-      );
+    if (!stream) return;
 
+    stream.viewers.delete(socket.id);
+
+    socket.leave(`live:${data.streamId}`);
+
+    if (socket.liveStreamId === data.streamId) {
       socket.liveStreamId = null;
     }
-  );
 
-  socket.on(
-    "host-ended-live",
-    (data) => {
-      if (!data?.streamId) return;
+    emitViewerCount(data.streamId);
+  });
 
-      const stream =
-        liveStreams.get(data.streamId);
+  socket.on("leave-live-stream", (data) => {
+    if (!data?.streamId) return;
 
-      if (!stream) return;
+    const stream = liveStreams.get(data.streamId);
 
-      if (
-        stream.userId &&
-        data.userId &&
-        String(stream.userId) !==
-          String(data.userId)
-      ) {
-        return;
-      }
+    if (!stream) return;
 
-      io.to(
-        live:${data.streamId}
-      ).emit("stream-ended", {
-        streamId: data.streamId,
-      });
+    stream.viewers.delete(socket.id);
 
-      io.in(
-        live:${data.streamId}
-      ).socketsLeave(
-        live:${data.streamId}
-      );
+    socket.leave(live:${data.streamId});
 
-      liveStreams.delete(
-        data.streamId
-      );
-
+    if (socket.liveStreamId === data.streamId) {
       socket.liveStreamId = null;
     }
-  );
 
-  socket.on(
-    "disconnect",
-    async () => {
-      console.log(
-        "User disconnected:",
-        socket.id
-      );
+    emitViewerCount(data.streamId);
+  });
 
-      if (socket.liveStreamId) {
-        const streamId =
-          socket.liveStreamId;
+  socket.on("end-live", (data) => {
+    if (!data?.streamId) return;
 
-        const stream =
-          liveStreams.get(streamId);
+    const stream = liveStreams.get(data.streamId);
 
-        if (stream) {
-          if (
-            String(stream.userId) ===
-            String(socket.userId)
-          ) {
-            io.to(
-              live:${streamId}
-            ).emit("stream-ended", {
-              streamId,
-            });
+    if (!stream) return;
 
-            io.in(
-              live:${streamId}
-            ).socketsLeave(
-              live:${streamId}
-            );
+    if (
+      stream.userId &&
+      data.userId &&
+      String(stream.userId) !== String(data.userId)
+    ) {
+      return;
+    }
 
-            liveStreams.delete(
-              streamId
-            );
-          } else {
-            stream.viewers.delete(
-              socket.id
-            );
+    io.to(`live:${data.streamId}`).emit("live-ended", {
+      streamId: data.streamId,
+    });
 
-            emitViewerCount(streamId);
-          }
-        }
-      }
+    io.to(`live:${data.streamId}`).emit("stream-ended", {
+      streamId: data.streamId,
+    });
 
-      try {
-        if (socket.userId) {
-          await User.findByIdAndUpdate(
-            socket.userId,
+    io.in(`live:${data.streamId}`).socketsLeave(
+      `live:${data.streamId}`
+    );
+
+    liveStreams.delete(data.streamId);
+
+    socket.liveStreamId = null;
+  });
+
+  socket.on("host-ended-live", (data) => {
+    if (!data?.streamId) return;
+
+    const stream = liveStreams.get(data.streamId);
+
+    if (!stream) return;
+
+    if (
+      stream.userId &&
+      data.userId &&
+      String(stream.userId) !== String(data.userId)
+    ) {
+      return;
+    }
+
+    io.to(`live:${data.streamId}`).emit("stream-ended", {
+      streamId: data.streamId,
+    });
+
+    io.in(`live:${data.streamId}`).socketsLeave(
+      `live:${data.streamId}`
+    );
+
+    liveStreams.delete(data.streamId);
+
+    socket.liveStreamId = null;
+  });
+socket.on("disconnect", async () => {
+    console.log(
+      "User disconnected:",
+      socket.id
+    );
+
+    if (socket.liveStreamId) {
+      const streamId =
+        socket.liveStreamId;
+
+      const stream =
+        liveStreams.get(streamId);
+
+      if (stream) {
+        if (
+          String(stream.userId) ===
+          String(socket.userId)
+        ) {
+          io.to(
+            `live:${streamId}`
+          ).emit(
+            "stream-ended",
             {
-              isOnline: false,
-              lastSeen: new Date(),
+              streamId,
             }
           );
 
-          const onlineUsers =
-            await User.find(
-              { isOnline: true },
-              "_id"
-            );
+          io.in(
+            `live:${streamId}`
+          ).socketsLeave(
+            `live:${streamId}`
+          );
 
-          io.emit(
-            "onlineUsers",
-            onlineUsers.map(
-              (user) =>
-                user._id.toString()
-            )
+          liveStreams.delete(
+            streamId
+          );
+        } else {
+          stream.viewers.delete(
+            socket.id
+          );
+
+          emitViewerCount(
+            streamId
           );
         }
-      } catch (error) {
-        console.error(
-          "Offline status Error:",
-          error
-        );
       }
     }
-  );
+
+    try {
+      if (socket.userId) {
+        await User.findByIdAndUpdate(
+          socket.userId,
+          {
+            isOnline: false,
+            lastSeen: new Date(),
+          }
+        );
+
+        const onlineUsers =
+          await User.find(
+            { isOnline: true },
+            "_id"
+          );
+
+        io.emit(
+          "onlineUsers",
+          onlineUsers.map(
+            (user) =>
+              user._id.toString()
+          )
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Offline status Error:",
+        error
+      );
+    }
+  });
 });
 
 const PORT =
