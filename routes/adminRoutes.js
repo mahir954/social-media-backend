@@ -47,49 +47,52 @@ router.get("/create-admin", async (req, res) => {
 
 // ADMIN LOGIN
 router.post("/login", async (req, res) => {
-try {
-const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-// Temporary Admin Credentials
-const adminEmail = "admin@gmail.com";
-const adminPassword = "admin123";
+    const admin = await Admin.findOne({
+      email: email.toLowerCase().trim(),
+    });
 
-// Check Email
-if (email !== adminEmail) {
-  return res.status(401).json({
-    message: "Invalid Admin Email",
-  });
-}
+    if (!admin) {
+      return res.status(401).json({
+        message: "Invalid Admin Email",
+      });
+    }
 
-// Check Password
-if (password !== adminPassword) {
-  return res.status(401).json({
-    message: "Invalid Admin Password",
-  });
-}
+    const isPasswordCorrect = await bcrypt.compare(
+      password,
+      admin.password
+    );
 
-// Create JWT Token
-const token = jwt.sign(
-  {
-    role: "admin",
-    email: adminEmail,
-  },
-  process.env.JWT_SECRET || "admin-secret-key",
-  {
-    expiresIn: "1d",
+    if (!isPasswordCorrect) {
+      return res.status(401).json({
+        message: "Invalid Admin Password",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        role: "admin",
+        email: admin.email,
+      },
+      process.env.JWT_SECRET || "admin-secret-key",
+      {
+        expiresIn: "1d",
+      }
+    );
+
+    res.json({
+      message: "Admin Login Successful",
+      token,
+    });
+  } catch (error) {
+    console.error("Admin Login Error:", error);
+
+    res.status(500).json({
+      message: "Server Error",
+    });
   }
-);
-
-res.json({
-  message: "Admin Login Successful",
-  token,
-});
-
-} catch (error) {
-res.status(500).json({
-message: "Server Error",
-});
-}
 });
 // GET TOTAL USERS
 router.get("/stats/users", async (req, res) => {
