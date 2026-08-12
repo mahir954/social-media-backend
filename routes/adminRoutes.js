@@ -460,61 +460,58 @@ router.delete("/comments/:type/:parentId/:commentId", async (req, res) => {
     });
   }
 });
-// CHANGE ADMIN PASSWORD
-router.put("/change-password", adminMiddleware, async (req, res) => {
+const handleChangeAdminPassword = async () => {
+  if (!currentPassword || !newPassword) {
+    alert("Please enter current password and new password");
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    alert("New password must be at least 6 characters");
+    return;
+  }
+
   try {
-    const { currentPassword, newPassword } = req.body;
+    const adminToken = localStorage.getItem("adminToken");
 
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        message: "Current password and new password are required",
-      });
+    if (!adminToken) {
+      alert("Admin session expired. Please login again.");
+      window.location.href = "/admin-login";
+      return;
     }
 
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        message: "New password must be at least 6 characters",
-      });
-    }
-
-    const admin = await Admin.findOne({
-      email: req.admin.email,
-    });
-
-    if (!admin) {
-      return res.status(404).json({
-        message: "Admin not found",
-      });
-    }
-
-    const isPasswordCorrect = await bcrypt.compare(
-      currentPassword,
-      admin.password
+    const response = await fetch(
+      "https://social-media-backend-9fag.onrender.com/api/admin/change-password",
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      }
     );
 
-    if (!isPasswordCorrect) {
-      return res.status(400).json({
-        message: "Current password is incorrect",
-      });
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Password change failed");
+      return;
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    alert("Admin password changed successfully");
 
-    admin.password = hashedPassword;
+    setCurrentPassword("");
+    setNewPassword("");
 
-    await admin.save();
-
-    res.json({
-      message: "Password changed successfully",
-    });
   } catch (error) {
-    console.error("Admin Password Error:", error);
-
-    res.status(500).json({
-      message: "Failed to change password",
-    });
+    console.error("Change Password Error:", error);
+    alert("Server se connect nahi ho pa raha");
   }
-});
+};
 // EXPORT USERS
 router.get("/export/users", async (req, res) => {
   try {
