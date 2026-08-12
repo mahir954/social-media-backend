@@ -1,3 +1,4 @@
+
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -6,10 +7,43 @@ const Story = require("../models/Story");
 const Post = require("../models/Post");
 const Reel = require("../models/Reel");
 const Report = require("../models/Report");
+const Admin = require("../models/Admin");
 
 
 
 const router = express.Router();
+router.post("/create-admin", async (req, res) => {
+  try {
+    const existingAdmin = await Admin.findOne({
+      email: "admin@gmail.com",
+    });
+
+    if (existingAdmin) {
+      return res.status(400).json({
+        message: "Admin already exists",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash("admin123", 10);
+
+    const admin = new Admin({
+      email: "admin@gmail.com",
+      password: hashedPassword,
+    });
+
+    await admin.save();
+
+    res.status(201).json({
+      message: "Admin created successfully",
+    });
+  } catch (error) {
+    console.error("Create Admin Error:", error);
+
+    res.status(500).json({
+      message: "Failed to create admin",
+    });
+  }
+});
 
 // ADMIN LOGIN
 router.post("/login", async (req, res) => {
