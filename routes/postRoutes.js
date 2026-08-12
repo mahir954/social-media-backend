@@ -358,4 +358,52 @@ router.put("/:postId/comment/:commentId", authMiddleware, async (req, res) => {
     });
   }
 });
+router.delete(
+  "/:postId/comment/:commentId",
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const { postId, commentId } = req.params;
+
+      const post = await Post.findById(postId);
+
+      if (!post) {
+        return res.status(404).json({
+          message: "Post not found",
+        });
+      }
+
+      const comment = post.comments.id(commentId);
+
+      if (!comment) {
+        return res.status(404).json({
+          message: "Comment not found",
+        });
+      }
+
+      // Sirf apna comment delete kar sakta hai
+      if (comment.user.toString() !== req.user.userId) {
+        return res.status(403).json({
+          message: "You can delete only your own comment",
+        });
+      }
+
+      comment.deleteOne();
+
+      await post.save();
+
+      res.status(200).json({
+        message: "Comment deleted successfully",
+        comments: post.comments,
+      });
+    } catch (error) {
+      console.error("Delete Comment Error:", error);
+
+      res.status(500).json({
+        message: "Failed to delete comment",
+        error: error.message,
+      });
+    }
+  }
+);
 module.exports = router;
